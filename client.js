@@ -1872,7 +1872,7 @@ window.__ModuleLoader__.load({
               busy: archiveBusy,
               currentId,
               onToggle: toggle,
-              onToggleDone,
+              onToggleDone: toggleDone,
               onOpenSession: openSession,
               onNewSession: startSession,
               onRenameStart: setRenamingWorkspace,
