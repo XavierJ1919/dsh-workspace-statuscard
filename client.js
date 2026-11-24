@@ -1124,6 +1124,15 @@ window.__ModuleLoader__.load({
       return h('span', { className: 'wsc-unread-dot', 'aria-hidden': 'true' })
     }
 
+    /** State icon that stays quiet for settled sessions: done + read + no pending renders an invisible placeholder, keeping row alignment. */
+    function SessionStateIcon({ state, unread, size, className }) {
+      const icon = h(StatusIcon, { state, size })
+      if (state === 'done' && unread !== true) {
+        return h('span', { className, 'aria-hidden': 'true', style: { visibility: 'hidden' } }, icon)
+      }
+      return h('span', { className }, icon)
+    }
+
     function detailRow(label, value) {
       return h('div', { className: 'wsc-detail-row' }, h('span', { className: 'wsc-detail-label' }, label), h('span', { className: 'wsc-detail-value', title: value }, value))
     }
@@ -1154,7 +1163,7 @@ window.__ModuleLoader__.load({
         h(
           'span',
           { className: 'wsc-card-row1' },
-          h('span', { className: 'wsc-card-icon' }, h(StatusIcon, { state: session.state, size: 13 })),
+          h(SessionStateIcon, { state: session.state, unread: session.unread, size: 13, className: 'wsc-card-icon' }),
           h('span', { className: 'wsc-card-title' }, session.title.length > 0 ? session.title : tr('unnamedSession')),
           session.pendingKind !== null ? h('span', { className: 'wsc-badge' }, tr(PENDING_KINDS[session.pendingKind])) : null,
           session.state === 'done' && session.unread ? h(UnreadDot) : null,
@@ -1299,7 +1308,7 @@ window.__ModuleLoader__.load({
                 title: session.title.length > 0 ? session.title : tr('unnamedSession'),
                 onClick: () => onOpen(session.id),
               },
-              h('span', { className: 'wsc-session-icon' }, h(StatusIcon, { state: session.state, size: 13 })),
+              h(SessionStateIcon, { state: session.state, unread: session.unread, size: 13, className: 'wsc-session-icon' }),
               h('span', { className: 'wsc-session-title' }, session.title.length > 0 ? session.title : tr('unnamedSession')),
               h('span', { className: 'wsc-session-tail' }, sessionTail(session, now, tr)),
             ),
