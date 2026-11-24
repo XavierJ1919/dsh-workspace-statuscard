@@ -375,7 +375,7 @@ window.__ModuleLoader__.load({
       '.wsc-add-path-input:focus{border-color:var(--dsw-alias-brand-primary,#4c8df6)}',
       '.wsc-add-path-hint{font-size:10px;line-height:1.4;color:var(--dsw-alias-label-secondary)}',
       '.wsc-sessions{display:flex;flex-direction:column;gap:1px;padding:0 2px 3px}',
-      '.wsc-session{display:flex;align-items:center;width:100%;min-height:26px;border-radius:6px;background:transparent;color:inherit}',
+      '.wsc-session{position:relative;display:flex;align-items:center;width:100%;min-height:26px;border-radius:6px;background:transparent;color:inherit}',
       '.wsc-session:hover{background:var(--dsw-alias-bg-layer-2)}',
       '.wsc-session[data-state="attention"]{background:color-mix(in srgb,var(--wsc-accent) 7%,transparent)}',
       '.wsc-session[data-state="attention"]:hover{background:color-mix(in srgb,var(--wsc-accent) 13%,transparent)}',
@@ -1356,9 +1356,22 @@ window.__ModuleLoader__.load({
     }
 
     function SessionEntry({ session, now, currentId, renaming, busy, onOpen, onRenameStart, onRename, onArchive, tr }) {
+      // `_sessionRow` / `_title` are hotkey-compat tokens: dsh-session-hotkeys
+      // reads session order from `div[class*="_sessionRow"]`, opens a row by
+      // dispatching a bubbling click, and reads its name from `[class*="_title"]`.
       return h(
         'div',
-        { className: 'wsc-session', 'data-state': session.state, 'data-current': session.id === currentId ? 'true' : 'false' },
+        {
+          className: 'wsc-session _sessionRow',
+          'data-state': session.state,
+          'data-current': session.id === currentId ? 'true' : 'false',
+          onClick: (event) => {
+            if (renaming) return
+            const target = event.target
+            if (target !== undefined && target !== null && typeof target.closest === 'function' && target.closest('button') !== null) return
+            onOpen(session.id)
+          },
+        },
         renaming
           ? h(RenameRow, {
             key: 'rename',
@@ -1382,7 +1395,7 @@ window.__ModuleLoader__.load({
                 onClick: () => onOpen(session.id),
               },
               h(SessionStateIcon, { state: session.state, unread: session.unread, size: 13, className: 'wsc-session-icon' }),
-              h('span', { className: 'wsc-session-title' }, session.title.length > 0 ? session.title : tr('unnamedSession')),
+              h('span', { className: 'wsc-session-title _title' }, session.title.length > 0 ? session.title : tr('unnamedSession')),
               h('span', { className: 'wsc-session-tail' }, sessionTail(session, now, tr)),
             ),
             h(
@@ -2024,7 +2037,7 @@ window.__ModuleLoader__.load({
               { className: 'wsc-search', role: 'search' },
               h('span', { className: 'wsc-search-icon', 'aria-hidden': 'true' }, h(SearchIcon, { size: 13 })),
               h('input', {
-                className: 'wsc-search-input',
+                className: 'wsc-search-input _searchInput',
                 type: 'search',
                 value: query,
                 placeholder: tr('search.placeholder'),
