@@ -2264,47 +2264,9 @@ window.__ModuleLoader__.load({
     // Plugin
     // ---------------------------------------------------------------------
 
-    /** Crash-attribution-safe wrapper: marks that this entry actually renders. */
+    /** Crash-attribution-safe wrapper. */
     function StatuscardGuarded(props) {
-      DEBUG.rendered = true
       return h(CrashTextBoundary, null, h(Statuscard, props))
-    }
-
-    const DEBUG = { sidebarRegistered: null, sidebarError: null, rendered: null, crash: null }
-
-    function DiagOverlay(props) {
-      const [open, setOpen] = React.useState(false)
-      DEBUG.renderedProbe = true
-      return h(
-        React.Fragment,
-        null,
-        h(
-          'button',
-          {
-            type: 'button',
-            onClick: () => setOpen(true),
-            title: 'workspace-statuscard diagnostics',
-          },
-          DEBUG.crash !== null || DEBUG.sidebarError !== null ? 'SC!' : 'SC',
-        ),
-        open
-          ? h(
-            'div',
-            {
-              onClick: () => setOpen(false),
-              style: { position: 'fixed', inset: 0, zIndex: 2147483000, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' },
-            },
-            h(
-              'pre',
-              {
-                onClick: (event) => event.stopPropagation(),
-                style: { background: '#fff', color: '#111', padding: 14, fontSize: 11, lineHeight: 1.5, maxWidth: 460, margin: '70px auto', whiteSpace: 'pre-wrap', borderRadius: 10, maxHeight: '70vh', overflow: 'auto' },
-              },
-              JSON.stringify(DEBUG, null, 2),
-            ),
-          )
-          : null,
-      )
     }
 
     /** Keep the entry seated on crash: render the error inline instead of abdicating the slot back to the shipped browser. */
@@ -2318,8 +2280,8 @@ window.__ModuleLoader__.load({
       }
       render() {
         if (this.state.error !== null) {
-          DEBUG.crash = String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error) + '\n' + String(this.state.error && this.state.error.stack ? this.state.error.stack : '')
-          return h('div', { style: { padding: '8px 10px', fontSize: 11, color: 'var(--dsw-alias-state-error-primary,#e5484d)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }, 'statuscard crash:\n' + DEBUG.crash)
+          const error = this.state.error
+          return h('div', { style: { padding: '8px 10px', fontSize: 11, color: 'var(--dsw-alias-state-error-primary,#e5484d)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }, 'statuscard crash:\n' + String(error && error.message ? error.message : error))
         }
         return this.props.children
       }
@@ -2332,7 +2294,6 @@ window.__ModuleLoader__.load({
 
       ctx.slots.inject('sidebar.workspaces', () => {
         try {
-          DEBUG.sidebarRegistered = 'registering'
           ctx.slots.register({
             name: 'sidebar.workspaces',
             // The shipped browser sits at priority 0; register() rejects a
@@ -2376,19 +2337,12 @@ window.__ModuleLoader__.load({
               },
             }),
           }, StatuscardGuarded)
-          DEBUG.sidebarRegistered = 'ok'
         } catch (error) {
-          DEBUG.sidebarRegistered = 'throw'
-          DEBUG.sidebarError = String(error && error.message ? error.message : error)
+          // Surface registration problems on the browser console; the sidebar
+          // simply keeps the shipped browser as the fallback.
+          console.error('[workspace-statuscard] sidebar.workspaces register failed:', error)
         }
       })
-
-      ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-        name: 'sidebar.footer.action',
-        id: 'workspace-statuscard-diag',
-        order: 900,
-        locale: NS,
-      }, DiagOverlay))
 
       ctx.slots.inject('shell.overlay', () => ctx.slots.register({
         name: 'shell.overlay',
