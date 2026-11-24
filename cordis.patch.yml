@@ -1,0 +1,3 @@
+- insert:
+    - id: workspace-statuscard
+      name: '@local/dsh-workspace-statuscard'
