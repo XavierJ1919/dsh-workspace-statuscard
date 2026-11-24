@@ -107,6 +107,7 @@ window.__ModuleLoader__.load({
       'tasks.other': '{n} tasks',
       'active.at': 'Active {time}',
       'newSession': 'New session in {name}',
+      'actions.workspace.aria': 'Workspace actions for {name}',
       'addWorkspace': 'Add workspace',
       'addWorkspace.error': 'Could not add workspace: {message}',
       'addWorkspace.pathTitle': 'Add workspace by path',
@@ -201,6 +202,7 @@ window.__ModuleLoader__.load({
       'tasks.other': '{n} 个任务',
       'active.at': '最近活动 {time}',
       'newSession': '在 {name} 中新建会话',
+      'actions.workspace.aria': '工作区“{name}”的操作',
       'addWorkspace': '添加工作区',
       'addWorkspace.error': '无法添加工作区：{message}',
       'addWorkspace.pathTitle': '按路径添加工作区',
@@ -355,10 +357,11 @@ window.__ModuleLoader__.load({
       '.wsc-ws-avatar{flex:none}',
       '.wsc-ws-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500}',
       '.wsc-pill{flex:none;display:inline-flex;align-items:center;gap:4px;height:18px;padding:0 6px;border-radius:999px;font-size:10.5px;font-weight:600;white-space:nowrap;color:var(--wsc-accent);border:1px solid color-mix(in srgb,var(--wsc-accent) 38%,transparent);background:color-mix(in srgb,var(--wsc-accent) 13%,transparent)}',
-      '.wsc-new,.wsc-ws-archive,.wsc-rename-action{flex:none;width:22px;height:22px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;opacity:0}',
-      '.wsc-group:hover .wsc-new,.wsc-group:hover .wsc-ws-archive,.wsc-group:hover .wsc-rename-action,.wsc-new:focus-visible,.wsc-ws-archive:focus-visible,.wsc-rename-action:focus-visible{opacity:1}',
-      '.wsc-new:hover,.wsc-ws-archive:hover,.wsc-rename-action:hover{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}',
-      '@media (hover:none){.wsc-new,.wsc-ws-archive,.wsc-rename-action{opacity:1}}',
+      '.wsc-new,.wsc-menu{flex:none;width:22px;height:22px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;opacity:0}',
+      '.wsc-menu-slot{display:contents}',
+      '.wsc-group:hover .wsc-new,.wsc-group:hover .wsc-menu,.wsc-new:focus-visible,.wsc-menu:focus-visible{opacity:1}',
+      '.wsc-new:hover,.wsc-menu:hover{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}',
+      '@media (hover:none){.wsc-new,.wsc-menu{opacity:1}}',
       '.wsc-rename{display:flex;align-items:center;gap:5px;padding:2px 6px 5px 24px}',
       '.wsc-rename-session{padding-left:39px}',
       '.wsc-rename-input{flex:1;min-width:0;height:26px;padding:0 7px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;outline:none}',
@@ -1237,15 +1240,24 @@ window.__ModuleLoader__.load({
     function ActiveCard({ session, now, current, onOpen, tr }) {
       const workspace = session.workspace
       const stateLabel = tr('state.' + session.state)
+      // A div carrying `_sessionRow` (not a real <button>) so dsh-session-hotkeys
+      // includes active cards in its visual row order; role/button semantics kept.
       return h(
-        'button',
+        'div',
         {
-          type: 'button',
-          className: 'wsc-card',
+          className: 'wsc-card _sessionRow',
+          role: 'button',
+          tabIndex: 0,
           'data-state': session.state,
           'data-current': current ? 'true' : 'false',
           title: stateLabel + ' · ' + relativeLabel(session.updatedAt, now, tr),
           onClick: () => onOpen(session.id),
+          onKeyDown: (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onOpen(session.id)
+            }
+          },
           onMouseEnter: (event) => setTip({ session, rect: event.currentTarget.getBoundingClientRect(), now }),
           onMouseLeave: () => setTip(null),
           onFocus: (event) => setTip({ session, rect: event.currentTarget.getBoundingClientRect(), now }),
@@ -1255,7 +1267,7 @@ window.__ModuleLoader__.load({
           'span',
           { className: 'wsc-card-row1' },
           h(SessionStateIcon, { state: session.state, unread: session.unread, size: 13, className: 'wsc-card-icon' }),
-          h('span', { className: 'wsc-card-title' }, session.title.length > 0 ? session.title : tr('unnamedSession')),
+          h('span', { className: 'wsc-card-title _title' }, session.title.length > 0 ? session.title : tr('unnamedSession')),
           session.pendingKind !== null ? h('span', { className: 'wsc-badge' }, tr(PENDING_KINDS[session.pendingKind])) : null,
           session.state === 'done' && session.unread ? h(UnreadDot) : null,
           h('span', { className: 'wsc-card-time' }, relativeLabel(session.updatedAt, now, tr)),
@@ -1428,7 +1440,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function WorkspaceEntry({ row, now, collapsed, doneExpanded, renaming, renamingSession, busy, currentId, onToggle, onToggleDone, onOpenSession, onNewSession, onRenameStart, onRename, onRenameSessionStart, onRenameSession, onArchiveSession, onArchiveWorkspace, tr }) {
+    function WorkspaceEntry({ row, now, collapsed, doneExpanded, renaming, renamingSession, busy, currentId, onToggle, onToggleDone, onOpenSession, onNewSession, onRenameStart, onRename, onRenameSessionStart, onRenameSession, onArchiveSession, onArchiveWorkspace, renderFactorySlot, tr }) {
       const visibleSessions = doneExpanded
         ? row.sessions
         : row.sessions.filter((session, index) => session.rank < RANK.done || index < DONE_PREVIEW_LIMIT)
@@ -1483,32 +1495,17 @@ window.__ModuleLoader__.load({
                     },
                     h(PlusIcon, { size: 13 }),
                   ),
-                  h(
-                    'button',
-                    {
-                      key: 'rename',
-                      type: 'button',
-                      className: 'wsc-rename-action',
-                      title: tr('rename.action'),
-                      'aria-label': tr('rename.action'),
-                      disabled: busy,
-                      onClick: () => onRenameStart(row.workspaceId),
-                    },
-                    h(PencilIcon, { size: 12 }),
-                  ),
-                  h(
-                    'button',
-                    {
-                      key: 'archive',
-                      type: 'button',
-                      className: 'wsc-ws-archive',
-                      title: tr('archiveWorkspace.action'),
-                      'aria-label': tr('archiveWorkspace.action'),
-                      disabled: busy,
-                      onClick: () => onArchiveWorkspace(row),
-                    },
-                    h(ArchiveIcon, { size: 12 }),
-                  ),
+                  typeof renderFactorySlot === 'function'
+                    ? h(
+                      'span',
+                      { key: 'menu', className: 'wsc-menu-slot' },
+                      renderFactorySlot('contextMenu.button', {
+                        target: { kind: 'workspace', value: { workspaceId: row.workspaceId, path: row.path, displayTitle: label } },
+                        label: tr('actions.workspace.aria', { name: label }),
+                        className: 'wsc-menu',
+                      }),
+                    )
+                    : null,
                 ],
             ],
         ),
@@ -1632,6 +1629,9 @@ window.__ModuleLoader__.load({
       const unarchiveSession = typeof props.unarchiveSession === 'function' ? props.unarchiveSession : async () => {}
       const renameWorkspace = typeof props.renameWorkspace === 'function' ? props.renameWorkspace : async () => {}
       const renameSession = typeof props.renameSession === 'function' ? props.renameSession : async () => {}
+      // Slot host always binds the factory renderer (standardKit); used to render
+      // the shipped workspace context-menu trigger ("…") next to New session.
+      const renderFactorySlot = typeof props.renderFactorySlot === 'function' ? props.renderFactorySlot : null
 
       const useWorkspaces = props.useWorkspaces
       const useSessions = props.useSessions
@@ -1976,6 +1976,7 @@ window.__ModuleLoader__.load({
               onRenameSession: handleSessionRename,
               onArchiveSession: requestArchive,
               onArchiveWorkspace: archiveWorkspace,
+              renderFactorySlot,
               tr,
             })),
           ),
