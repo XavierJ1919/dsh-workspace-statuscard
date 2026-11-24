@@ -2247,10 +2247,11 @@ window.__ModuleLoader__.load({
           DEBUG.sidebarRegistered = 'registering'
           ctx.slots.register({
             name: 'sidebar.workspaces',
-            // No explicit priority: the runner allocates each dynamic registration a
-            // value below everything registered earlier (the shipped browser included),
-            // so registering later is what makes this occupant the winner. A hard
-            // -1 here would tie the shipped browser's own allocated -1 and lose.
+            // The shipped browser sits at priority 0; register() rejects a
+            // default-priority collision, and "lowest renders" — an explicit
+            // lower value shadows it. Render crashes are kept visible by
+            // CrashTextBoundary instead of abdicating back to the shipped UI.
+            priority: -1,
             locale: NS,
             inject: () => ({
               openSession: (sessionId) => ctx.uiWorkspace.openSession(sessionId),
