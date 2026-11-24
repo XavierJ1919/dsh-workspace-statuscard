@@ -2176,53 +2176,130 @@ window.__ModuleLoader__.load({
     // Plugin
     // ---------------------------------------------------------------------
 
+    /** Crash-attribution-safe wrapper: marks that this entry actually renders. */
+    function StatuscardGuarded(props) {
+      DEBUG.rendered = true
+      return h(CrashTextBoundary, null, h(Statuscard, props))
+    }
+
+    const DEBUG = { sidebarRegistered: null, sidebarError: null, rendered: null, crash: null }
+
+    function DiagOverlay(props) {
+      const [open, setOpen] = React.useState(false)
+      DEBUG.renderedProbe = true
+      return h(
+        React.Fragment,
+        null,
+        h(
+          'button',
+          {
+            type: 'button',
+            onClick: () => setOpen(true),
+            title: 'workspace-statuscard diagnostics',
+          },
+          DEBUG.crash !== null || DEBUG.sidebarError !== null ? 'SC!' : 'SC',
+        ),
+        open
+          ? h(
+            'div',
+            {
+              onClick: () => setOpen(false),
+              style: { position: 'fixed', inset: 0, zIndex: 2147483000, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' },
+            },
+            h(
+              'pre',
+              {
+                onClick: (event) => event.stopPropagation(),
+                style: { background: '#fff', color: '#111', padding: 14, fontSize: 11, lineHeight: 1.5, maxWidth: 460, margin: '70px auto', whiteSpace: 'pre-wrap', borderRadius: 10, maxHeight: '70vh', overflow: 'auto' },
+              },
+              JSON.stringify(DEBUG, null, 2),
+            ),
+          )
+          : null,
+      )
+    }
+
+    /** Keep the entry seated on crash: render the error inline instead of abdicating the slot back to the shipped browser. */
+    class CrashTextBoundary extends React.Component {
+      constructor(props) {
+        super(props)
+        this.state = { error: null }
+      }
+      static getDerivedStateFromError(error) {
+        return { error }
+      }
+      render() {
+        if (this.state.error !== null) {
+          DEBUG.crash = String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error) + '\n' + String(this.state.error && this.state.error.stack ? this.state.error.stack : '')
+          return h('div', { style: { padding: '8px 10px', fontSize: 11, color: 'var(--dsw-alias-state-error-primary,#e5484d)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }, 'statuscard crash:\n' + DEBUG.crash)
+        }
+        return this.props.children
+      }
+    }
+
     function apply(ctx) {
       ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'workspace-statuscard: dictionaries')
       remoteRef = ctx.remote
       const t = ctx.locale.bind(NS)
 
-      ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({
-        name: 'sidebar.workspaces',
-        // No explicit priority: the runner allocates each dynamic registration a
-        // value below everything registered earlier (the shipped browser included),
-        // so registering later is what makes this occupant the winner. A hard
-        // -1 here would tie the shipped browser's own allocated -1 and lose.
-        locale: NS,
-        inject: () => ({
-          openSession: (sessionId) => ctx.uiWorkspace.openSession(sessionId),
-          startSession: (workspaceId) => ctx.uiWorkspace.startSession(workspaceId),
-          archiveSession: (sessionId, options) => ctx.workspaces.archiveSession(sessionId, options),
-          unarchiveSession: (sessionId) => ctx.workspaces.unarchiveSession(sessionId),
-          renameWorkspace: (workspaceId, title) => ctx.workspaces.rename(workspaceId, title),
-          renameSession: (sessionId, title) => ctx.sessions
-            .using(sessionId, { source: 'workspaceOperation' }, (reference) => reference.binding.session.rename(title))
-            .then((result) => {
-              if (result === undefined || result === null || result.ok !== true) {
-                throw new Error(result && result.error && result.error.message ? result.error.message : 'Session rename failed')
-              }
-              return result.value
+      ctx.slots.inject('sidebar.workspaces', () => {
+        try {
+          DEBUG.sidebarRegistered = 'registering'
+          ctx.slots.register({
+            name: 'sidebar.workspaces',
+            // No explicit priority: the runner allocates each dynamic registration a
+            // value below everything registered earlier (the shipped browser included),
+            // so registering later is what makes this occupant the winner. A hard
+            // -1 here would tie the shipped browser's own allocated -1 and lose.
+            locale: NS,
+            inject: () => ({
+              openSession: (sessionId) => ctx.uiWorkspace.openSession(sessionId),
+              startSession: (workspaceId) => ctx.uiWorkspace.startSession(workspaceId),
+              archiveSession: (sessionId, options) => ctx.workspaces.archiveSession(sessionId, options),
+              unarchiveSession: (sessionId) => ctx.workspaces.unarchiveSession(sessionId),
+              renameWorkspace: (workspaceId, title) => ctx.workspaces.rename(workspaceId, title),
+              renameSession: (sessionId, title) => ctx.sessions
+                .using(sessionId, { source: 'workspaceOperation' }, (reference) => reference.binding.session.rename(title))
+                .then((result) => {
+                  if (result === undefined || result === null || result.ok !== true) {
+                    throw new Error(result && result.error && result.error.message ? result.error.message : 'Session rename failed')
+                  }
+                  return result.value
+                }),
+              addWorkspace: async (path) => {
+                if (typeof path !== 'string' || path === '') return null
+                await ctx.workspaces.create({ path })
+                return path
+              },
+              pickDirectory: async () => {
+                if (typeof window === 'undefined') return undefined
+                const desktop = window.__DSH_DIRECTORY_PICKER__
+                if (desktop !== undefined && desktop !== null && typeof desktop.pick === 'function') {
+                  const result = await desktop.pick()
+                  return typeof result === 'string' && result.length > 0 ? result : null
+                }
+                const legacy = window.__DSH_DESKTOP_PICK_DIRECTORY__
+                if (typeof legacy === 'function') {
+                  const result = await legacy()
+                  return typeof result === 'string' && result.length > 0 ? result : null
+                }
+                return undefined
+              },
             }),
-          addWorkspace: async (path) => {
-            if (typeof path !== 'string' || path === '') return null
-            await ctx.workspaces.create({ path })
-            return path
-          },
-          pickDirectory: async () => {
-            if (typeof window === 'undefined') return undefined
-            const desktop = window.__DSH_DIRECTORY_PICKER__
-            if (desktop !== undefined && desktop !== null && typeof desktop.pick === 'function') {
-              const result = await desktop.pick()
-              return typeof result === 'string' && result.length > 0 ? result : null
-            }
-            const legacy = window.__DSH_DESKTOP_PICK_DIRECTORY__
-            if (typeof legacy === 'function') {
-              const result = await legacy()
-              return typeof result === 'string' && result.length > 0 ? result : null
-            }
-            return undefined
-          },
-        }),
-      }, Statuscard))
+          }, StatuscardGuarded)
+          DEBUG.sidebarRegistered = 'ok'
+        } catch (error) {
+          DEBUG.sidebarRegistered = 'throw'
+          DEBUG.sidebarError = String(error && error.message ? error.message : error)
+        }
+      })
+
+      ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+        name: 'sidebar.footer.action',
+        id: 'workspace-statuscard-diag',
+        order: 900,
+        locale: NS,
+      }, DiagOverlay))
 
       ctx.slots.inject('settings.section', () => ctx.slots.register({
         name: 'settings.section',
