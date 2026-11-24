@@ -2183,8 +2183,10 @@ window.__ModuleLoader__.load({
 
       ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({
         name: 'sidebar.workspaces',
-        // The shipped browser registers at priority 0; the lowest priority renders.
-        priority: -1,
+        // No explicit priority: the runner allocates each dynamic registration a
+        // value below everything registered earlier (the shipped browser included),
+        // so registering later is what makes this occupant the winner. A hard
+        // -1 here would tie the shipped browser's own allocated -1 and lose.
         locale: NS,
         inject: () => ({
           openSession: (sessionId) => ctx.uiWorkspace.openSession(sessionId),
