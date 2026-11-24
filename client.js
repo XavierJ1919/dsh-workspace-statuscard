@@ -957,7 +957,7 @@ window.__ModuleLoader__.load({
       React.useEffect(() => {
         if (!active) return undefined
         const cached = previewCache.get(sessionId)
-        if (cached !== undefined) {
+        if (cached !== undefined && cached.status !== 'pending') {
           setPreview(cached)
           return undefined
         }
@@ -1177,9 +1177,11 @@ window.__ModuleLoader__.load({
             h('span', { className: 'wsc-detail-label' }, tr('details.message')),
             preview === null
               ? h('span', { className: 'wsc-detail-value' }, '…')
-              : preview.status === 'empty' || preview.status === 'pending'
-                ? h('span', { className: 'wsc-detail-value' }, tr('details.noMessage'))
-                : h('span', { className: 'wsc-detail-message' }, preview.text),
+              : preview.status === 'pending'
+                ? h('span', { className: 'wsc-detail-value' }, '…')
+                : preview.status === 'empty'
+                  ? h('span', { className: 'wsc-detail-value' }, tr('details.noMessage'))
+                  : h('span', { className: 'wsc-detail-message' }, preview.text),
           ),
         ),
       )
@@ -1882,10 +1884,10 @@ window.__ModuleLoader__.load({
               tr,
             })),
           ),
-          !queryActive && archivedWorkspacesItems.length > 0
+          !queryActive && archivedWorkspaceItems.length > 0
             ? h(ArchivedWorkspacesSection, {
               key: 'archived-workspaces',
-              items: archivedWorkspacesItems,
+              items: archivedWorkspaceItems,
               expanded: archivedWorkspacesOpen,
               onToggle: () => setArchivedWorkspacesOpen((value) => !value),
               onRestore: restoreWorkspace,
