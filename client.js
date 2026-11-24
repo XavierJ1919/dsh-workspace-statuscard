@@ -330,8 +330,10 @@ window.__ModuleLoader__.load({
       '.wsc-ws-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;color:var(--dsw-alias-label-secondary)}',
       '.wsc-badge{flex:none;display:inline-flex;align-items:center;gap:3px;height:16px;padding:0 6px;border-radius:999px;font-size:10px;font-weight:600;white-space:nowrap;color:var(--wsc-card-accent);background:color-mix(in srgb,var(--wsc-card-accent) 13%,transparent);border:1px solid color-mix(in srgb,var(--wsc-card-accent) 38%,transparent)}',
       '.wsc-unread-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-success-primary,#3fb950)}',
-      '.wsc-card-details{display:none;flex-direction:column;gap:3px;margin-top:5px;padding-top:5px;border-top:1px solid var(--dsw-alias-border-l1);font-size:10.5px;color:var(--dsw-alias-label-secondary);line-height:1.45}',
-      '.wsc-card:hover .wsc-card-details,.wsc-card:focus-within .wsc-card-details{display:flex}',
+      '.wsc-tip{position:fixed;z-index:2147483000;width:300px;max-height:60vh;overflow:hidden;padding:9px 11px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-overlay);color:var(--dsw-alias-label-primary);box-shadow:0 12px 40px rgba(0,0,0,.28);font-size:11px;line-height:1.5;pointer-events:none}',
+      '.wsc-tip-title{display:flex;align-items:center;gap:6px;margin-bottom:5px;min-width:0}',
+      '.wsc-tip-title-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}',
+      '.wsc-tip-rows{display:flex;flex-direction:column;gap:3px;min-width:0}',
       '.wsc-detail-row{display:flex;gap:5px;min-width:0}',
       '.wsc-detail-label{flex:none;opacity:.75}',
       '.wsc-detail-value{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary)}',
@@ -1141,9 +1143,97 @@ window.__ModuleLoader__.load({
     // Active zone
     // ---------------------------------------------------------------------
 
+    /**
+     * Module-scope hover channel between the cards and the shell.overlay tip.
+     * Holds {session, rect} while a card is hovered/focused, null otherwise.
+     */
+    const tipListeners = new Set()
+    let tipState = null
+
+    function setTip(next) {
+      tipState = next
+      for (const listener of tipListeners) listener(tipState)
+    }
+
+    function subscribeTip(listener) {
+      tipListeners.add(listener)
+      return () => tipListeners.delete(listener)
+    }
+
+    function useTip() {
+      const [value, setValue] = React.useState(() => tipState)
+      React.useEffect(() => subscribeTip(setValue), [])
+      return value
+    }
+
+    /** Frame-wide floating tip: fixed near the hovered card, right side first, flipped when it would leave the viewport. */
+    function CardTipOverlay(props) {
+      const tr = typeof props.t === 'function' ? props.t : (key) => key
+      const tip = useTip()
+      const sessionId = tip !== null ? tip.session.id : null
+      const preview = useMessagePreview(sessionId, tip !== null)
+
+      React.useEffect(() => {
+        if (tip === null) return undefined
+        const close = () => setTip(null)
+        const onKey = (event) => {
+          if (event.key === 'Escape') close()
+        }
+        window.addEventListener('scroll', close, { capture: true })
+        window.addEventListener('keydown', onKey)
+        return () => {
+          window.removeEventListener('scroll', close, { capture: true })
+          window.removeEventListener('keydown', onKey)
+        }
+      }, [tip])
+
+      if (tip === null) return null
+      const session = tip.session
+      const workspace = session.workspace
+      const tipWidth = 300
+      const margin = 8
+      const rect = tip.rect
+      const viewportWidth = typeof window !== 'undefined' && window.innerWidth ? window.innerWidth : 1280
+      const viewportHeight = typeof window !== 'undefined' && window.innerHeight ? window.innerHeight : 800
+      let left = rect.right + margin
+      if (left + tipWidth > viewportWidth - margin) left = rect.left - tipWidth - margin
+      if (left < margin) left = Math.min(Math.max(margin, rect.left), Math.max(margin, viewportWidth - tipWidth - margin))
+      const top = Math.min(Math.max(margin, rect.top), Math.max(margin, viewportHeight - 160))
+      const stateLabel = tr('state.' + session.state)
+
+      return h(
+        'div',
+        { className: 'wsc-tip', style: { left: Math.round(left), top: Math.round(top) }, role: 'tooltip' },
+        h(
+          'div',
+          { className: 'wsc-tip-title' },
+          h('span', { className: 'wsc-card-icon' }, h(StatusIcon, { state: session.state, size: 13 })),
+          h('span', { className: 'wsc-tip-title-text' }, session.title.length > 0 ? session.title : tr('unnamedSession')),
+          session.pendingKind !== null ? h('span', { className: 'wsc-badge' }, tr(PENDING_KINDS[session.pendingKind])) : null,
+        ),
+        h(
+          'div',
+          { className: 'wsc-tip-rows' },
+          detailRow(stateLabel + ' · ' + relativeLabel(session.updatedAt, tip.now, tr), workspace !== null && workspace.title.length > 0 ? workspace.title : tr('ungrouped')),
+          workspace !== null && workspace.path.length > 0 ? detailRow(tr('details.path'), workspace.path) : null,
+          detailRow(tr('details.active'), absoluteMoment(session.updatedAt)),
+          h(
+            'div',
+            { className: 'wsc-detail-row' },
+            h('span', { className: 'wsc-detail-label' }, tr('details.message')),
+            preview === null
+              ? h('span', { className: 'wsc-detail-value' }, '…')
+              : preview.status === 'pending'
+                ? h('span', { className: 'wsc-detail-value' }, '…')
+                : preview.status === 'empty'
+                  ? h('span', { className: 'wsc-detail-value' }, tr('details.noMessage'))
+                  : h('div', { className: 'wsc-detail-message' }, preview.text),
+          ),
+        ),
+      )
+    }
+
     function ActiveCard({ session, now, current, onOpen, tr }) {
-      const [hovered, setHovered] = React.useState(false)
-      const preview = useMessagePreview(session.id, hovered)
       const workspace = session.workspace
       const stateLabel = tr('state.' + session.state)
       return h(
@@ -1155,10 +1245,10 @@ window.__ModuleLoader__.load({
           'data-current': current ? 'true' : 'false',
           title: stateLabel + ' · ' + relativeLabel(session.updatedAt, now, tr),
           onClick: () => onOpen(session.id),
-          onMouseEnter: () => setHovered(true),
-          onMouseLeave: () => setHovered(false),
-          onFocus: () => setHovered(true),
-          onBlur: () => setHovered(false),
+          onMouseEnter: (event) => setTip({ session, rect: event.currentTarget.getBoundingClientRect(), now }),
+          onMouseLeave: () => setTip(null),
+          onFocus: (event) => setTip({ session, rect: event.currentTarget.getBoundingClientRect(), now }),
+          onBlur: () => setTip(null),
         },
         h(
           'span',
@@ -1174,24 +1264,6 @@ window.__ModuleLoader__.load({
           { className: 'wsc-card-row2' },
           h(ProjectAvatar, { title: workspace !== null ? workspace.title : '', size: 14 }),
           h('span', { className: 'wsc-ws-name' }, workspace !== null && workspace.title.length > 0 ? workspace.title : tr('ungrouped')),
-        ),
-        h(
-          'span',
-          { className: 'wsc-card-details', onClick: (event) => event.stopPropagation() },
-          workspace !== null && workspace.path.length > 0 ? detailRow(tr('details.path'), workspace.path) : null,
-          detailRow(tr('details.active'), absoluteMoment(session.updatedAt)),
-          h(
-            'span',
-            { className: 'wsc-detail-row' },
-            h('span', { className: 'wsc-detail-label' }, tr('details.message')),
-            preview === null
-              ? h('span', { className: 'wsc-detail-value' }, '…')
-              : preview.status === 'pending'
-                ? h('span', { className: 'wsc-detail-value' }, '…')
-                : preview.status === 'empty'
-                  ? h('span', { className: 'wsc-detail-value' }, tr('details.noMessage'))
-                  : h('span', { className: 'wsc-detail-message' }, preview.text),
-          ),
         ),
       )
     }
@@ -2310,6 +2382,13 @@ window.__ModuleLoader__.load({
         order: 900,
         locale: NS,
       }, DiagOverlay))
+
+      ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+        name: 'shell.overlay',
+        id: 'workspace-statuscard-tip',
+        order: 1001,
+        locale: NS,
+      }, CardTipOverlay))
 
       ctx.slots.inject('settings.section', () => ctx.slots.register({
         name: 'settings.section',
