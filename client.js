@@ -2186,6 +2186,31 @@ window.__ModuleLoader__.load({
     // Settings tab
     // ---------------------------------------------------------------------
 
+    // Nav icon for the settings sidebar: a status card with the same pulse
+    // line the running state uses, keeping the section visually tied to the
+    // sidebar card. Registered under the keyed `settings.section.icon` slot.
+    function SettingsSectionNavIcon({ size }) {
+      const dimension = size === undefined ? 16 : size
+      return h(
+        'svg',
+        {
+          width: dimension,
+          height: dimension,
+          viewBox: '0 0 24 24',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: 1.8,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          'aria-hidden': 'true',
+          focusable: 'false',
+          style: { display: 'block' },
+        },
+        h('rect', { x: 3, y: 5, width: 18, height: 14, rx: 2.5 }),
+        h('path', { d: 'M6.5 12h3l1.7-4.2 3 8.4 1.7-4.2h2.6' }),
+      )
+    }
+
     function SettingsSection(props) {
       const tr = typeof props.t === 'function' ? props.t : (key) => key
       const [settings, update] = useSettings()
@@ -2430,6 +2455,17 @@ window.__ModuleLoader__.load({
         label: () => t('settings.title'),
         locale: NS,
       }, SettingsSection))
+
+      // Register the nav icon AFTER the section itself: if the icon entry is
+      // ever rejected, the section tab must already be in place.
+      ctx.slots.inject('settings.section.icon', () => ctx.slots.register({
+        name: 'settings.section.icon',
+        // List slot: entries are addressed by `id`, which must equal the
+        // settings.section id above for the nav row to pick this icon up
+        // instead of the shell's default gear glyph.
+        id: 'workspace-statuscard-settings',
+        locale: NS,
+      }, SettingsSectionNavIcon))
     }
 
     return {
