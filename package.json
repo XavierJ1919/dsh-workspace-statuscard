@@ -1,17 +1,22 @@
 {
   "name": "@local/dsh-workspace-statuscard",
   "version": "0.1.0",
-  "description": "Active-zone-first workspace sidebar for DSH: a pinned active-session zone above the per-workspace browser, with a configurable activity window, duplicate/return display modes, and a dedicated settings tab.",
+  "description": "Active-zone-first workspace sidebar plugin for DSH (DeepSeek Harness): pins an Active Sessions zone above the workspace browser, with a configurable activity window, duplicate/return display modes, font size control, and a dedicated settings tab.",
   "type": "module",
   "license": "MIT",
   "keywords": [
     "dsh",
     "dsh-plugin",
+    "deepseek",
     "deepseek-harness",
+    "cordis",
     "workspace",
     "sidebar",
-    "active-zone",
-    "status"
+    "sidebar-extension",
+    "active-sessions",
+    "session-tracker",
+    "statuscard",
+    "status-board"
   ],
   "engines": {
     "dsh": ">=0.2.2-rc.1"
