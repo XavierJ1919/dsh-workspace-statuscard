@@ -185,6 +185,8 @@ window.__ModuleLoader__.load({
       'settings.font.standard': 'Standard',
       'settings.font.large': 'Large',
       'settings.font.xlarge': 'Extra large',
+      'settings.font.larger': 'Increase font size',
+      'settings.font.smaller': 'Decrease font size',
       'settings.reset': 'Reset active zone',
       'settings.resetHint': 'Clear every dismissal record so sessions re-enter the active zone by the rules.',
       'settings.resetDone': 'Reset done',
@@ -285,6 +287,8 @@ window.__ModuleLoader__.load({
       'settings.font.standard': '标准',
       'settings.font.large': '大',
       'settings.font.xlarge': '特大',
+      'settings.font.larger': '增大字号',
+      'settings.font.smaller': '减小字号',
       'settings.reset': '重置活跃区',
       'settings.resetHint': '清除全部“已移出”记录，会话按规则重新进入活跃区。',
       'settings.resetDone': '已重置',
@@ -476,6 +480,10 @@ window.__ModuleLoader__.load({
       '.wsc-fontbtn{padding:3px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;cursor:pointer}',
       '.wsc-fontbtn:hover{background:var(--dsw-alias-bg-layer-2)}',
       '.wsc-fontbtn[data-checked="true"]{border-color:var(--dsw-alias-brand-primary,#4c8df6);background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c8df6) 10%,transparent)}',
+      '.wsc-fontstep{flex:none;display:inline-flex;align-items:center;height:26px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;cursor:pointer}',
+      '.wsc-fontstep:hover{background:var(--dsw-alias-bg-layer-2)}',
+      '.wsc-fontstep:disabled{opacity:.45;cursor:default}',
+      '.wsc-fontstep-text{flex:none;font-size:12px;color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;min-width:44px;text-align:center}',
       // Every font size above becomes scalable through one custom property (--wsc-fs), set per zone root.
     ].join('\n').replace(/font-size:\s*([\d.]+)px/g, (match, px) => 'font-size:calc(' + px + 'px * var(--wsc-fs,1))')
 
@@ -2216,6 +2224,16 @@ window.__ModuleLoader__.load({
         setTimeout(() => setResetDone(false), 2500)
       }
 
+      const stepFont = (direction) => {
+        const values = FONT_SCALES.map((option) => option.value)
+        let nearest = 0
+        for (let index = 1; index < values.length; index++) {
+          if (Math.abs(values[index] - settings.fontScale) < Math.abs(values[nearest] - settings.fontScale)) nearest = index
+        }
+        const next = values[Math.min(values.length - 1, Math.max(0, nearest + direction))]
+        if (next !== settings.fontScale) update({ fontScale: next })
+      }
+
       return h(
         'div',
         { className: 'wsc-settings-root' },
@@ -2289,20 +2307,37 @@ window.__ModuleLoader__.load({
           h('span', { className: 'wsc-settings-label' }, tr('settings.font')),
           h(
             'div',
-            { className: 'wsc-fontrow', role: 'radiogroup', 'aria-label': tr('settings.font') },
-            FONT_SCALES.map((option) => h(
+            { className: 'wsc-fontrow', role: 'group', 'aria-label': tr('settings.font') },
+            h(
               'button',
               {
-                key: option.value,
                 type: 'button',
-                className: 'wsc-fontbtn',
-                role: 'radio',
-                'aria-checked': settings.fontScale === option.value ? 'true' : 'false',
-                'data-checked': settings.fontScale === option.value ? 'true' : 'false',
-                onClick: () => update({ fontScale: option.value }),
+                className: 'wsc-fontstep',
+                title: tr('settings.font.smaller'),
+                'aria-label': tr('settings.font.smaller'),
+                disabled: settings.fontScale <= FONT_SCALES[0].value,
+                onClick: () => stepFont(-1),
               },
-              tr(option.key),
-            )),
+              'A−',
+            ),
+            h('span', { className: 'wsc-fontstep-text' }, Math.round(settings.fontScale * 100) + '%'),
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'wsc-fontstep',
+                title: tr('settings.font.larger'),
+                'aria-label': tr('settings.font.larger'),
+                disabled: settings.fontScale >= FONT_SCALES[FONT_SCALES.length - 1].value,
+                onClick: () => stepFont(1),
+              },
+              'A+',
+            ),
+            h(
+              'span',
+              { className: 'wsc-settings-desc' },
+              FONT_SCALES.map((option) => (option.value === settings.fontScale ? tr(option.key) : null)).find((label) => label !== null) || '',
+            ),
           ),
         ),
         h(
