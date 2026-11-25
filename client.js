@@ -35,7 +35,13 @@ window.__ModuleLoader__.load({
     const SETTINGS_KEY = 'dsh.workspace-statuscard.settings.v1'
     const DISMISS_KEY = 'dsh.workspace-statuscard.dismissed.v1'
     const ACTIVE_COLLAPSE_KEY = 'dsh.workspace-statuscard.active-collapsed.v1'
-    const DEFAULT_SETTINGS = { windowDays: 3, mode: 'a' }
+    const DEFAULT_SETTINGS = { windowDays: 3, mode: 'a', fontScale: 1 }
+    const FONT_SCALES = [
+      { value: 0.9, key: 'settings.font.compact' },
+      { value: 1, key: 'settings.font.standard' },
+      { value: 1.12, key: 'settings.font.large' },
+      { value: 1.25, key: 'settings.font.xlarge' },
+    ]
     const DAY_MS = 86400000
 
     // ---------------------------------------------------------------------
@@ -49,9 +55,11 @@ window.__ModuleLoader__.load({
     function sanitizeSettings(value) {
       const source = value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {}
       const windowDays = Number(source.windowDays)
+      const fontScale = Number(source.fontScale)
       return {
         windowDays: Number.isFinite(windowDays) && windowDays > 0 ? windowDays : DEFAULT_SETTINGS.windowDays,
         mode: source.mode === 'b' ? 'b' : 'a',
+        fontScale: Number.isFinite(fontScale) && fontScale >= 0.8 && fontScale <= 1.4 ? fontScale : DEFAULT_SETTINGS.fontScale,
       }
     }
 
@@ -172,6 +180,11 @@ window.__ModuleLoader__.load({
       'settings.modeADesc': 'Sessions appear in both the active zone and the workspace list (default).',
       'settings.modeB': 'Return to workspace on open',
       'settings.modeBDesc': 'Opening a session in the active zone removes it there until it sees new activity.',
+      'settings.font': 'Font size',
+      'settings.font.compact': 'Compact',
+      'settings.font.standard': 'Standard',
+      'settings.font.large': 'Large',
+      'settings.font.xlarge': 'Extra large',
       'settings.reset': 'Reset active zone',
       'settings.resetHint': 'Clear every dismissal record so sessions re-enter the active zone by the rules.',
       'settings.resetDone': 'Reset done',
@@ -267,6 +280,11 @@ window.__ModuleLoader__.load({
       'settings.modeADesc': '会话同时出现在活跃区和项目区（默认）。',
       'settings.modeB': '选中后回到项目区',
       'settings.modeBDesc': '会话在活跃区被打开后移出，直到有新消息才重新进入。',
+      'settings.font': '字号',
+      'settings.font.compact': '紧凑',
+      'settings.font.standard': '标准',
+      'settings.font.large': '大',
+      'settings.font.xlarge': '特大',
       'settings.reset': '重置活跃区',
       'settings.resetHint': '清除全部“已移出”记录，会话按规则重新进入活跃区。',
       'settings.resetDone': '已重置',
@@ -454,7 +472,12 @@ window.__ModuleLoader__.load({
       '.wsc-settings-saved{font-size:11px;color:var(--dsw-alias-state-success-primary,#3fb950)}',
       '.wsc-settings-reset-row{display:flex;align-items:center;gap:8px}',
       '.wsc-settings-reset:disabled{opacity:.55;cursor:default}',
-    ].join('\n')
+      '.wsc-fontrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}',
+      '.wsc-fontbtn{padding:3px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;cursor:pointer}',
+      '.wsc-fontbtn:hover{background:var(--dsw-alias-bg-layer-2)}',
+      '.wsc-fontbtn[data-checked="true"]{border-color:var(--dsw-alias-brand-primary,#4c8df6);background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c8df6) 10%,transparent)}',
+      // Every font size above becomes scalable through one custom property (--wsc-fs), set per zone root.
+    ].join('\n').replace(/font-size:\s*([\d.]+)px/g, (match, px) => 'font-size:calc(' + px + 'px * var(--wsc-fs,1))')
 
     // ---------------------------------------------------------------------
     // Storage
@@ -1173,6 +1196,7 @@ window.__ModuleLoader__.load({
     /** Frame-wide floating tip: fixed near the hovered card, right side first, flipped when it would leave the viewport. */
     function CardTipOverlay(props) {
       const tr = typeof props.t === 'function' ? props.t : (key) => key
+      const [settings] = useSettings()
       const tip = useTip()
       const sessionId = tip !== null ? tip.session.id : null
       const preview = useMessagePreview(sessionId, tip !== null)
@@ -1207,7 +1231,7 @@ window.__ModuleLoader__.load({
 
       return h(
         'div',
-        { className: 'wsc-tip', style: { left: Math.round(left), top: Math.round(top) }, role: 'tooltip' },
+        { className: 'wsc-tip', style: { left: Math.round(left), top: Math.round(top), '--wsc-fs': String(settings.fontScale) }, role: 'tooltip' },
         h(
           'div',
           { className: 'wsc-tip-title' },
@@ -2011,7 +2035,7 @@ window.__ModuleLoader__.load({
         h('style', { key: 'wsc-style' }, CSS),
         h(
           'div',
-          { className: 'wsc-root' },
+          { className: 'wsc-root', style: { '--wsc-fs': String(settings.fontScale) } },
           h(
             'div',
             { className: 'wsc-head' },
@@ -2257,6 +2281,28 @@ window.__ModuleLoader__.load({
               h('span', { className: 'wsc-mode-name' }, h('span', { className: 'wsc-mode-dot' }), tr('settings.modeB')),
               h('span', { className: 'wsc-mode-desc' }, tr('settings.modeBDesc')),
             ),
+          ),
+        ),
+        h(
+          'div',
+          { className: 'wsc-settings-row' },
+          h('span', { className: 'wsc-settings-label' }, tr('settings.font')),
+          h(
+            'div',
+            { className: 'wsc-fontrow', role: 'radiogroup', 'aria-label': tr('settings.font') },
+            FONT_SCALES.map((option) => h(
+              'button',
+              {
+                key: option.value,
+                type: 'button',
+                className: 'wsc-fontbtn',
+                role: 'radio',
+                'aria-checked': settings.fontScale === option.value ? 'true' : 'false',
+                'data-checked': settings.fontScale === option.value ? 'true' : 'false',
+                onClick: () => update({ fontScale: option.value }),
+              },
+              tr(option.key),
+            )),
           ),
         ),
         h(
