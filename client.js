@@ -445,9 +445,7 @@ window.__ModuleLoader__.load({
       '.wsc-rail-btn:hover{background:var(--dsw-alias-bg-layer-2)}',
       '.wsc-rail-btn[data-zero="true"]{opacity:.42}',
       '.wsc-rail-count{position:absolute;right:3px;bottom:2px;min-width:13px;height:13px;padding:0 2px;border-radius:7px;background:var(--dsw-specific-sidebar-fill,var(--dsw-alias-bg-base));color:var(--wsc-accent);font-size:9px;font-weight:700;line-height:13px;text-align:center;font-variant-numeric:tabular-nums}',
-      '.wsc-spin{animation:wsc-rotate 1.15s linear infinite;transform-origin:50% 50%}',
-      '@keyframes wsc-rotate{to{transform:rotate(360deg)}}',
-      '@media (prefers-reduced-motion:reduce){.wsc-spin{animation:none}.wsc-chevron{transition:none}}',
+      '@media (prefers-reduced-motion:reduce){.wsc-chevron{transition:none}}',
       '.wsc-settings-root{display:flex;flex-direction:column;gap:14px;max-width:560px;color:var(--dsw-alias-label-primary);font-size:13px;line-height:1.5}',
       '.wsc-settings-row{display:flex;flex-direction:column;gap:4px}',
       '.wsc-settings-label{font-weight:600;font-size:13px}',
@@ -1034,12 +1032,7 @@ window.__ModuleLoader__.load({
         return h('svg', common, h('path', { d: 'M12 3.4 21.3 20.2H2.7L12 3.4Z' }), h('path', { d: 'M12 9.3v4.7' }), h('circle', { cx: 12, cy: 17.2, r: 1.15, fill: 'currentColor', stroke: 'none' }))
       }
       if (state === 'running') {
-        return h(
-          'svg',
-          Object.assign({}, common, { className: 'wsc-spin' }),
-          h('circle', { cx: 12, cy: 12, r: 8.4, opacity: 0.3 }),
-          h('path', { d: 'M20.4 12A8.4 8.4 0 0 0 12 3.6' }),
-        )
+        return h('svg', common, h('path', { d: 'M22 12h-4l-3 9-6-18-3 9h4' }))
       }
       return h('svg', common, h('circle', { cx: 12, cy: 12, r: 8.4 }), h('path', { d: 'm8.1 12.2 2.7 2.7 5.1-5.4' }))
     }
