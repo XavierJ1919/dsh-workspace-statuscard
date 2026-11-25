@@ -91,8 +91,6 @@
   "settings.font.standard": "Standard",
   "settings.font.large": "Large",
   "settings.font.xlarge": "Extra large",
-  "settings.font.larger": "Increase font size",
-  "settings.font.smaller": "Decrease font size",
   "settings.reset": "Reset active zone",
   "settings.resetHint": "Clear every dismissal record so sessions re-enter the active zone by the rules.",
   "settings.resetDone": "Reset done",

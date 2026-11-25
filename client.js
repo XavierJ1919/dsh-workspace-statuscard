@@ -185,8 +185,6 @@ window.__ModuleLoader__.load({
       'settings.font.standard': 'Standard',
       'settings.font.large': 'Large',
       'settings.font.xlarge': 'Extra large',
-      'settings.font.larger': 'Increase font size',
-      'settings.font.smaller': 'Decrease font size',
       'settings.reset': 'Reset active zone',
       'settings.resetHint': 'Clear every dismissal record so sessions re-enter the active zone by the rules.',
       'settings.resetDone': 'Reset done',
@@ -287,8 +285,6 @@ window.__ModuleLoader__.load({
       'settings.font.standard': '标准',
       'settings.font.large': '大',
       'settings.font.xlarge': '特大',
-      'settings.font.larger': '增大字号',
-      'settings.font.smaller': '减小字号',
       'settings.reset': '重置活跃区',
       'settings.resetHint': '清除全部“已移出”记录，会话按规则重新进入活跃区。',
       'settings.resetDone': '已重置',
@@ -480,9 +476,6 @@ window.__ModuleLoader__.load({
       '.wsc-fontbtn{padding:3px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;cursor:pointer}',
       '.wsc-fontbtn:hover{background:var(--dsw-alias-bg-layer-2)}',
       '.wsc-fontbtn[data-checked="true"]{border-color:var(--dsw-alias-brand-primary,#4c8df6);background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4c8df6) 10%,transparent)}',
-      '.wsc-fontstep{flex:none;display:inline-flex;align-items:center;height:20px;padding:0 5px;border:none;border-radius:5px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:10.5px;cursor:pointer}',
-      '.wsc-fontstep:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
-      '.wsc-fontstep-text{flex:none;font-size:10.5px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;min-width:32px;text-align:center}',
       // Every font size above becomes scalable through one custom property (--wsc-fs), set per zone root.
     ].join('\n').replace(/font-size:\s*([\d.]+)px/g, (match, px) => 'font-size:calc(' + px + 'px * var(--wsc-fs,1))')
 
@@ -2036,16 +2029,6 @@ window.__ModuleLoader__.load({
         )
       }
 
-      const stepFont = (direction) => {
-        const values = FONT_SCALES.map((option) => option.value)
-        let nearest = 0
-        for (let index = 1; index < values.length; index++) {
-          if (Math.abs(values[index] - settings.fontScale) < Math.abs(values[nearest] - settings.fontScale)) nearest = index
-        }
-        const next = values[Math.min(values.length - 1, Math.max(0, nearest + direction))]
-        if (next !== settings.fontScale) update({ fontScale: next })
-      }
-
       return h(
         React.Fragment,
         null,
@@ -2061,35 +2044,6 @@ window.__ModuleLoader__.load({
               { className: 'wsc-head-row' },
               h('span', { className: 'wsc-title' }, tr('title')),
               h('span', { className: 'wsc-total' }, tr(queryActive ? 'total.results' : 'total', { n: visibleRows.length })),
-              h(
-                'span',
-                { className: 'wsc-fontstep-text', title: tr('settings.font') },
-                Math.round(settings.fontScale * 100) + '%',
-              ),
-              h(
-                'button',
-                {
-                  type: 'button',
-                  className: 'wsc-fontstep',
-                  title: tr('settings.font.larger'),
-                  'aria-label': tr('settings.font.larger'),
-                  disabled: settings.fontScale >= FONT_SCALES[FONT_SCALES.length - 1].value,
-                  onClick: () => stepFont(1),
-                },
-                'A+',
-              ),
-              h(
-                'button',
-                {
-                  type: 'button',
-                  className: 'wsc-fontstep',
-                  title: tr('settings.font.smaller'),
-                  'aria-label': tr('settings.font.smaller'),
-                  disabled: settings.fontScale <= FONT_SCALES[0].value,
-                  onClick: () => stepFont(-1),
-                },
-                'A−',
-              ),
               h(
                 'button',
                 {
