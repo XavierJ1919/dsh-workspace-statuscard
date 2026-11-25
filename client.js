@@ -36,12 +36,10 @@ window.__ModuleLoader__.load({
     const DISMISS_KEY = 'dsh.workspace-statuscard.dismissed.v1'
     const ACTIVE_COLLAPSE_KEY = 'dsh.workspace-statuscard.active-collapsed.v1'
     const DEFAULT_SETTINGS = { windowDays: 3, mode: 'a', fontScale: 1 }
-    const FONT_SCALES = [
-      { value: 0.9, key: 'settings.font.compact' },
-      { value: 1, key: 'settings.font.standard' },
-      { value: 1.12, key: 'settings.font.large' },
-      { value: 1.25, key: 'settings.font.xlarge' },
-    ]
+    /** The base (100%) font size of the sidebar; the setting presents itself as this value in px. */
+    const BASE_FONT_PX = 13
+    const MIN_FONT_PX = 11
+    const MAX_FONT_PX = 16
     const DAY_MS = 86400000
 
     // ---------------------------------------------------------------------
@@ -181,10 +179,7 @@ window.__ModuleLoader__.load({
       'settings.modeB': 'Return to workspace on open',
       'settings.modeBDesc': 'Opening a session in the active zone removes it there until it sees new activity.',
       'settings.font': 'Font size',
-      'settings.font.compact': 'Compact',
-      'settings.font.standard': 'Standard',
-      'settings.font.large': 'Large',
-      'settings.font.xlarge': 'Extra large',
+      'settings.font.hint': 'Base text size; other elements scale with it.',
       'settings.font.larger': 'Increase font size',
       'settings.font.smaller': 'Decrease font size',
       'settings.reset': 'Reset active zone',
@@ -283,10 +278,7 @@ window.__ModuleLoader__.load({
       'settings.modeB': '选中后回到项目区',
       'settings.modeBDesc': '会话在活跃区被打开后移出，直到有新消息才重新进入。',
       'settings.font': '字号',
-      'settings.font.compact': '紧凑',
-      'settings.font.standard': '标准',
-      'settings.font.large': '大',
-      'settings.font.xlarge': '特大',
+      'settings.font.hint': '基准字号，其余元素等比缩放。',
       'settings.font.larger': '增大字号',
       'settings.font.smaller': '减小字号',
       'settings.reset': '重置活跃区',
@@ -2225,13 +2217,9 @@ window.__ModuleLoader__.load({
       }
 
       const stepFont = (direction) => {
-        const values = FONT_SCALES.map((option) => option.value)
-        let nearest = 0
-        for (let index = 1; index < values.length; index++) {
-          if (Math.abs(values[index] - settings.fontScale) < Math.abs(values[nearest] - settings.fontScale)) nearest = index
-        }
-        const next = values[Math.min(values.length - 1, Math.max(0, nearest + direction))]
-        if (next !== settings.fontScale) update({ fontScale: next })
+        const currentPx = Math.round(BASE_FONT_PX * settings.fontScale)
+        const nextPx = Math.min(MAX_FONT_PX, Math.max(MIN_FONT_PX, currentPx + direction))
+        if (nextPx !== currentPx) update({ fontScale: nextPx / BASE_FONT_PX })
       }
 
       return h(
@@ -2315,12 +2303,12 @@ window.__ModuleLoader__.load({
                 className: 'wsc-fontstep',
                 title: tr('settings.font.smaller'),
                 'aria-label': tr('settings.font.smaller'),
-                disabled: settings.fontScale <= FONT_SCALES[0].value,
+                disabled: Math.round(BASE_FONT_PX * settings.fontScale) <= MIN_FONT_PX,
                 onClick: () => stepFont(-1),
               },
               'A−',
             ),
-            h('span', { className: 'wsc-fontstep-text' }, Math.round(settings.fontScale * 100) + '%'),
+            h('span', { className: 'wsc-fontstep-text' }, String(Math.round(BASE_FONT_PX * settings.fontScale)) + 'px'),
             h(
               'button',
               {
@@ -2328,16 +2316,12 @@ window.__ModuleLoader__.load({
                 className: 'wsc-fontstep',
                 title: tr('settings.font.larger'),
                 'aria-label': tr('settings.font.larger'),
-                disabled: settings.fontScale >= FONT_SCALES[FONT_SCALES.length - 1].value,
+                disabled: Math.round(BASE_FONT_PX * settings.fontScale) >= MAX_FONT_PX,
                 onClick: () => stepFont(1),
               },
               'A+',
             ),
-            h(
-              'span',
-              { className: 'wsc-settings-desc' },
-              FONT_SCALES.map((option) => (option.value === settings.fontScale ? tr(option.key) : null)).find((label) => label !== null) || '',
-            ),
+            h('span', { className: 'wsc-settings-desc' }, tr('settings.font.hint')),
           ),
         ),
         h(
