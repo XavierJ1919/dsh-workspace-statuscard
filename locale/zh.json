@@ -91,6 +91,8 @@
   "settings.font.standard": "标准",
   "settings.font.large": "大",
   "settings.font.xlarge": "特大",
+  "settings.font.larger": "增大字号",
+  "settings.font.smaller": "减小字号",
   "settings.reset": "重置活跃区",
   "settings.resetHint": "清除全部“已移出”记录，会话按规则重新进入活跃区。",
   "settings.resetDone": "已重置",
