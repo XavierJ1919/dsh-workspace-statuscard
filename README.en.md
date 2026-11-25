@@ -2,7 +2,7 @@
 
 **A workspace-sidebar enhancement plugin for DSH (DeepSeek Harness)**: it pins a persistent "Active Sessions" zone above the official workspace list, showing recently active sessions per conversation (not per project) and surfacing the ones that need your input first.
 
-![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/version-0.1.0-orange) ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.2--rc.1-blue) ![Platform](https://img.shields.io/badge/platform-web-lightgrey)
+![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/github/v/tag/XavierJ1919/dsh-workspace-statuscard?sort=semver&label=release) ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.2--rc.1-blue) ![Platform](https://img.shields.io/badge/platform-web-lightgrey)
 
 English | [简体中文](./README.md)
 

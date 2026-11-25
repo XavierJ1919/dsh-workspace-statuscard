@@ -2,7 +2,7 @@
 
 **DSH（DeepSeek Harness）工作区侧栏增强插件**：在官方工作区列表上方常驻一块「活跃会话区」，按会话（而非项目）维度展示最近活跃的会话，并把需要你介入的会话置顶。
 
-![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/version-0.1.0-orange) ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.2--rc.1-blue) ![Platform](https://img.shields.io/badge/platform-web-lightgrey)
+![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/github/v/tag/XavierJ1919/dsh-workspace-statuscard?sort=semver&label=release) ![DSH](https://img.shields.io/badge/DSH-%3E%3D0.2.2--rc.1-blue) ![Platform](https://img.shields.io/badge/platform-web-lightgrey)
 
 简体中文 | [English](./README.en.md)
 
